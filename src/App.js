@@ -19,6 +19,10 @@ function App() {
     /* ===== RIGHT SIDEBAR - Element Selection ===== */
       selectedElements: [],
       deleteField: ()=>{},
+      setFieldData: ()=>{},
+      selectedAnnotationData: {
+        isRequired: false,
+      },
   })
   const [pages,setPages] = useState([])
   useEffect(() => {
@@ -269,9 +273,41 @@ function App() {
           ...baseController,
           deleteField: deleteField
         }));
+        async function getFieldData(annotation){
+          const formFields = await instance.getFormFields();
+          const formField = formFields.find(
+            (formField) => formField.name === annotation.formFieldName,
+          );
+          // console.log('formField',formField)
+          // console.log('formField.required',formField.required)
+          return {
+            isRequired: formField.required,
+          }
+        }
+        async function setFieldData(annotation,key,value){
+          const formFields = await instance.getFormFields();
+          const formField = formFields.find(
+            (formField) => formField.name === annotation.formFieldName,
+          );
+          // const annotations = await instance.getAnnotations(0);
+          // const widget = annotations.find(
+          //   (annotation) => annotation.formFieldName === annotation.formFieldName,
+          // );
+          await instance.update([
+            formField.set(key, value),
+            // widget.set('opacity', 0.5),
+          ]);
+          const selectedAnnotationData = await getFieldData(annotation)
+          setController(baseController=>({
+            ...baseController,
+            selectedAnnotationData,
+          }));
+        }
+        setController(baseController=>({
+          ...baseController,
+          setFieldData: setFieldData
+        }));
       /* ===== RIGHT SIDEBAR - Element Selection ===== */
-
-
 
     })();
 
@@ -314,10 +350,9 @@ function App() {
                 {/* https://www.pdftron.com/api/web/Core.Annotations.Forms.FieldManager.html#main */}
                 <h2>{annotation.getFormFieldPlaceHolderType()}</h2>
                 <button type="button" onClick={()=>controller.deleteField(annotation)}>Remove</button>
-                <p>Required:</p>
-                <p>Field name:</p>
-                <p>Helper:</p>
+                <p>Required: <button type="button" onClick={()=>controller.setFieldData(annotation,'required',true)}>Yes</button> <button type="button" onClick={()=>controller.setFieldData(annotation,'required',false)}>No</button></p>
               </span>))}
+              {controller.selectedAnnotationData.isRequired?'required':'not required'}
             </div>
           )}
         </div>
